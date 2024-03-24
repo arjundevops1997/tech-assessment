@@ -1,0 +1,61 @@
+pipeline {
+    agent any
+    
+    environment {
+        AWS_DEFAULT_REGION = 'your_aws_region'
+        ECR_REPO_NAME = 'your_ecr_repository_name'
+        EKS_CLUSTER_NAME = 'your_eks_cluster_name'
+        IMAGE_TAG = "latest"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'your_git_repository_url'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    docker.build("your_docker_image_name:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                // Add your testing steps here
+            }
+        }
+
+        stage('Push to ECR') {
+            steps {
+                script {
+                    withDockerRegistry([credentialsId: 'your_ecr_credentials_id', url: "https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"]) {
+                        docker.image("your_docker_image_name:${IMAGE_TAG}").push("${ECR_REPO_NAME}:${IMAGE_TAG}")
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to EKS') {
+            steps {
+                script {
+                    sh "aws eks --region ${AWS_DEFAULT_REGION} update-kubeconfig --name ${EKS_CLUSTER_NAME}"
+                    sh "kubectl apply -f your_kubernetes_manifest.yaml"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Deployment successful!'
+        }
+        failure {
+            echo 'Deployment failed!'
+        }
+    }
+}
+
