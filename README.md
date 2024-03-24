@@ -1,2 +1,2 @@
-# tech-assessment-
+# tech-assessment
 only for test work
